@@ -1,0 +1,20 @@
+<div class="modal fade" id="form-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white" style="background-color: #1e1b4b;">
+                <h5 class="modal-title" id="modal-title">Formulário</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeModal()"></button>
+            </div>
+            <form id="generic-form" onsubmit="saveForm(event)">
+                <div class="modal-body" id="modal-fields">
+                    <!-- Dinâmico -->
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" id="field-id">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
