@@ -24,9 +24,9 @@ switch ($metodo) {
         $dados = json_decode(file_get_contents("php://input"), true);
 
         $sql = "INSERT INTO peca3d
-                (tamanho, modelo, descricao, tempoImpressao, peso, preco, id_subcategoria)
+            (tamanho, modelo, descricao, tempoImpressao, peso, preco, quantidade, id_subcategoria)
                 VALUES
-                (:tamanho, :modelo, :descricao, :tempoImpressao, :peso, :preco, :id_subcategoria)";
+            (:tamanho, :modelo, :descricao, :tempoImpressao, :peso, :preco, :quantidade, :id_subcategoria)";
 
         $stmt = $pdo->prepare($sql);
 
@@ -37,6 +37,7 @@ switch ($metodo) {
             ":tempoImpressao" => $dados["tempoImpressao"],
             ":peso" => $dados["peso"],
             ":preco" => $dados["preco"],
+            ":quantidade" => $dados["quantidade"] ?? 0,
             ":id_subcategoria" => $dados["id_subcategoria"]
         ]);
 
@@ -58,6 +59,7 @@ switch ($metodo) {
                     tempoImpressao = :tempoImpressao,
                     peso = :peso,
                     preco = :preco,
+                    quantidade = :quantidade,
                     id_subcategoria = :id_subcategoria
                 WHERE id = :id";
 
@@ -71,6 +73,7 @@ switch ($metodo) {
             ":tempoImpressao" => $dados["tempoImpressao"],
             ":peso" => $dados["peso"],
             ":preco" => $dados["preco"],
+            ":quantidade" => $dados["quantidade"] ?? 0,
             ":id_subcategoria" => $dados["id_subcategoria"]
         ]);
 

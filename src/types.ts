@@ -26,6 +26,7 @@ export type Peca3d = {
     tempoImpressao: string | null;
     peso: number | null;
     preco: number | null;
+    quantidade: number;
     id_subcategoria: number;
 };
 
@@ -41,6 +42,6 @@ export type PecaCliente = {
 export type RelatorioVendasCliente = {
     id_cliente: number;
     cliente: string;
-    total_vendas: number;
-    valor_total: number;
+    quantidade: number;
+    valor_unitario: number;
 };

@@ -130,13 +130,14 @@ async function loadTabData(tabName: string) {
                         <td>${item.tempoImpressao || '-'}</td>
                         <td>${item.peso ? item.peso + 'g' : '-'}</td>
                         <td class="text-success fw-bold">${item.preco ? 'R$ ' + Number(item.preco).toFixed(2) : '-'}</td>
+                        <td>${item.quantidade}</td>
                         <td>Subcat: ${item.id_subcategoria}</td>
                         <td class="text-end">
                             <button onclick='editItem("peca", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
                             <button onclick='deleteItem("peca", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
-                `).join('') || '<tr><td colspan="9" class="text-center py-3">Nenhuma peça 3D cadastrada.</td></tr>';
+                `).join('') || '<tr><td colspan="10" class="text-center py-3">Nenhuma peça 3D cadastrada.</td></tr>';
             }
         } else if (tabName === 'pedidos') {
             const data = await listarPecasCliente();
@@ -248,6 +249,10 @@ function openModal(entity: string, data: any = null) {
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label font-bold">Quantidade</label>
+                <input type="number" min="0" step="1" id="p-quantidade" value="${data ? data.quantidade ?? 0 : 0}" required class="form-control">
+            </div>
+            <div class="mb-3">
                 <label class="form-label font-bold">ID Subcategoria</label>
                 <input type="number" id="p-id-sub" value="${data ? data.id_subcategoria : ''}" required class="form-control">
             </div>
@@ -340,6 +345,7 @@ async function saveForm(e: Event) {
                 tempoImpressao: (document.getElementById('p-tempo') as HTMLInputElement).value || null,
                 peso: (document.getElementById('p-peso') as HTMLInputElement).value ? parseFloat((document.getElementById('p-peso') as HTMLInputElement).value) : null,
                 preco: (document.getElementById('p-preco') as HTMLInputElement).value ? parseFloat((document.getElementById('p-preco') as HTMLInputElement).value) : null,
+                quantidade: Number((document.getElementById('p-quantidade') as HTMLInputElement).value),
                 id_subcategoria: Number((document.getElementById('p-id-sub') as HTMLInputElement).value)
             };
             if (isEdit) {

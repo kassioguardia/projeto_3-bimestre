@@ -26,32 +26,45 @@ async function carregarDashboard(): Promise<void> {
 }
 
 function atualizarCards(relatorio: RelatorioVendasCliente[]): void {
-    if (relatorio.length === 0) return;
-
-    const totalClientes: number = relatorio.length;
-
-    const somaValores: number = relatorio.reduce((acumulador, item) => {
-        return acumulador + Number(item.valor_total);
-    }, 0);
-    const mediaValor: number = somaValores / totalClientes;
-
-    const clienteMaisVendas: RelatorioVendasCliente = relatorio.reduce((maior, item) => {
-        return Number(item.total_vendas) > Number(maior.total_vendas) ? item : maior;
-    }, relatorio[0]);
-
     const elTotal = document.getElementById('card-total-clientes');
+    const elMedia = document.getElementById('card-media-vendas');
+    const elMaiorCliente = document.getElementById('card-cliente-destaque');
+
+    if (relatorio.length === 0) {
+        if (elTotal) elTotal.innerText = 'Nenhum dado registrado';
+        if (elMedia) elMedia.innerText = 'Nenhum dado registrado';
+        if (elMaiorCliente) elMaiorCliente.innerText = 'Nenhum dado registrado';
+        return;
+    }
+
+    const totalClientes: number = new Set(relatorio.map((item) => item.id_cliente)).size;
+
+    const faturamentoTotal: number = relatorio.reduce((acumulador, item) => {
+        return acumulador + numeroSeguro(item.quantidade) * numeroSeguro(item.valor_unitario);
+    }, 0);
+
+    const vendasPorCliente = relatorio.reduce<Record<number, { cliente: string; quantidade: number }>>((acumulador, item) => {
+        if (!acumulador[item.id_cliente]) {
+            acumulador[item.id_cliente] = { cliente: item.cliente, quantidade: 0 };
+        }
+        acumulador[item.id_cliente].quantidade += numeroSeguro(item.quantidade);
+        return acumulador;
+    }, {});
+
+    const clienteMaisVendas = Object.values(vendasPorCliente).reduce((maior, item) => {
+        return item.quantidade > maior.quantidade ? item : maior;
+    });
+
     if (elTotal) {
         elTotal.innerText = totalClientes.toString();
     }
 
-    const elMedia = document.getElementById('card-media-vendas');
     if (elMedia) {
-        elMedia.innerText = formatarMoeda(mediaValor);
+        elMedia.innerText = formatarMoeda(faturamentoTotal);
     }
 
-    const elMaiorCliente = document.getElementById('card-cliente-destaque');
     if (elMaiorCliente) {
-        elMaiorCliente.innerText = `${clienteMaisVendas.cliente} (${clienteMaisVendas.total_vendas} un.)`;
+        elMaiorCliente.innerText = `${clienteMaisVendas.cliente} (${clienteMaisVendas.quantidade} un.)`;
     }
 }
 
@@ -66,14 +79,28 @@ function exibirTabela(relatorio: RelatorioVendasCliente[]): void {
         return;
     }
 
-    relatorio.forEach((item) => {
+    const vendasPorCliente = relatorio.reduce<Record<number, { id_cliente: number; cliente: string; quantidade: number; valor_total: number }>>((acumulador, item) => {
+        if (!acumulador[item.id_cliente]) {
+            acumulador[item.id_cliente] = {
+                id_cliente: item.id_cliente,
+                cliente: item.cliente,
+                quantidade: 0,
+                valor_total: 0
+            };
+        }
+        acumulador[item.id_cliente].quantidade += numeroSeguro(item.quantidade);
+        acumulador[item.id_cliente].valor_total += numeroSeguro(item.quantidade) * numeroSeguro(item.valor_unitario);
+        return acumulador;
+    }, {});
+
+    Object.values(vendasPorCliente).forEach((item) => {
         const tr = document.createElement('tr');
 
         tr.innerHTML = `
             <td>#${item.id_cliente}</td>
             <td><strong>${item.cliente}</strong></td>
-            <td>${item.total_vendas} un.</td>
-            <td>${formatarMoeda(Number(item.valor_total))}</td>
+            <td>${item.quantidade} un.</td>
+            <td>${formatarMoeda(item.valor_total)}</td>
         `;
 
         tbody.appendChild(tr);
@@ -85,6 +112,11 @@ function formatarMoeda(valor: number): string {
         style: 'currency',
         currency: 'BRL'
     });
+}
+
+function numeroSeguro(valor: number | null | undefined): number {
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : 0;
 }
 
 document.addEventListener('dashboard:ready', () => {

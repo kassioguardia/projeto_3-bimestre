@@ -55,6 +55,7 @@ CREATE TABLE `cliente` (
 
 CREATE TABLE `peca3d` (
   `id` int(11) NOT NULL,
+  `quantidade` int(11) NOT NULL DEFAULT 0,
   `tamanho` bigint(20) DEFAULT NULL,
   `modelo` varchar(80) NOT NULL,
   `descricao` varchar(150) DEFAULT NULL,
@@ -112,8 +113,8 @@ CREATE TABLE `subcategoria` (
 CREATE TABLE `vw_relatorio_vendas_cliente` (
 `id_cliente` int(11)
 ,`cliente` varchar(150)
-,`total_vendas` bigint(21)
-,`valor_total` decimal(32,2)
+,`quantidade` int(11)
+,`valor_unitario` decimal(10,2)
 );
 
 -- --------------------------------------------------------
@@ -123,7 +124,7 @@ CREATE TABLE `vw_relatorio_vendas_cliente` (
 --
 DROP TABLE IF EXISTS `vw_relatorio_vendas_cliente`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_relatorio_vendas_cliente`  AS SELECT `c`.`id` AS `id_cliente`, `c`.`nome` AS `cliente`, count(`pc`.`id`) AS `total_vendas`, sum(`p`.`preco`) AS `valor_total` FROM ((`cliente` `c` join `peca_cliente` `pc` on(`pc`.`id_cliente` = `c`.`id`)) join `peca3d` `p` on(`p`.`id` = `pc`.`id_peca3d`)) WHERE `pc`.`status` = 'Concluído' GROUP BY `c`.`id`, `c`.`nome` ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_relatorio_vendas_cliente`  AS SELECT `c`.`id` AS `id_cliente`, `c`.`nome` AS `cliente`, `p`.`quantidade` AS `quantidade`, `p`.`preco` AS `valor_unitario` FROM ((`cliente` `c` join `peca_cliente` `pc` on(`pc`.`id_cliente` = `c`.`id`)) join `peca3d` `p` on(`p`.`id` = `pc`.`id_peca3d`)) WHERE `pc`.`status` = 'Concluído' ;
 
 --
 -- Índices para tabelas despejadas
