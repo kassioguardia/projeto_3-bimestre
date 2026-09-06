@@ -1,6 +1,6 @@
 export async function listarSubcategorias() {
     try {
-        const resposta = await fetch('subcategoria.php');
+        const resposta = await fetch('api/subcategoria.php');
         if (!resposta.ok)
             throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
@@ -12,7 +12,7 @@ export async function listarSubcategorias() {
 }
 export async function criarSubcategoria(subcategoria) {
     try {
-        const resposta = await fetch('subcategoria.php', {
+        const resposta = await fetch('api/subcategoria.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subcategoria)
@@ -27,7 +27,7 @@ export async function criarSubcategoria(subcategoria) {
 }
 export async function atualizarSubcategoria(subcategoria) {
     try {
-        const resposta = await fetch('subcategoria.php', {
+        const resposta = await fetch('api/subcategoria.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subcategoria)
@@ -42,7 +42,7 @@ export async function atualizarSubcategoria(subcategoria) {
 }
 export async function excluirSubcategoria(id) {
     try {
-        const resposta = await fetch('subcategoria.php', {
+        const resposta = await fetch('api/subcategoria.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

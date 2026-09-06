@@ -1,6 +1,6 @@
 export async function listarCategorias() {
     try {
-        const resposta = await fetch('categoria.php');
+        const resposta = await fetch('api/categoria.php');
         if (!resposta.ok)
             throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
@@ -12,7 +12,7 @@ export async function listarCategorias() {
 }
 export async function criarCategoria(categoria) {
     try {
-        const resposta = await fetch('categoria.php', {
+        const resposta = await fetch('api/categoria.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
@@ -27,7 +27,7 @@ export async function criarCategoria(categoria) {
 }
 export async function atualizarCategoria(categoria) {
     try {
-        const resposta = await fetch('categoria.php', {
+        const resposta = await fetch('api/categoria.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
@@ -42,7 +42,7 @@ export async function atualizarCategoria(categoria) {
 }
 export async function excluirCategoria(id) {
     try {
-        const resposta = await fetch('categoria.php', {
+        const resposta = await fetch('api/categoria.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

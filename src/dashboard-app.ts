@@ -299,8 +299,18 @@ function closeModal() {
     }
 }
 
+let isSaving = false;
+
 async function saveForm(e: Event) {
     e.preventDefault();
+    if (isSaving) return;
+    isSaving = true;
+
+    const submitBtn = document.querySelector('#generic-form button[type="submit"]') as HTMLButtonElement | null;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+
     const idField = document.getElementById('field-id') as HTMLInputElement;
     const id = idField ? idField.value : '';
     const isEdit = id !== '';
@@ -372,6 +382,11 @@ async function saveForm(e: Event) {
     } catch (err) {
         console.error(err);
         alert("Ocorreu um erro ao salvar o registro.");
+    } finally {
+        isSaving = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
     }
 }
 

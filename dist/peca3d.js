@@ -1,6 +1,6 @@
 export async function listarPecas3d() {
     try {
-        const resposta = await fetch('peca3d.php');
+        const resposta = await fetch('api/peca3d.php');
         if (!resposta.ok)
             throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
@@ -12,7 +12,7 @@ export async function listarPecas3d() {
 }
 export async function criarPeca3d(peca) {
     try {
-        const resposta = await fetch('peca3d.php', {
+        const resposta = await fetch('api/peca3d.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(peca)
@@ -27,7 +27,7 @@ export async function criarPeca3d(peca) {
 }
 export async function atualizarPeca3d(peca) {
     try {
-        const resposta = await fetch('peca3d.php', {
+        const resposta = await fetch('api/peca3d.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(peca)
@@ -42,7 +42,7 @@ export async function atualizarPeca3d(peca) {
 }
 export async function excluirPeca3d(id) {
     try {
-        const resposta = await fetch('peca3d.php', {
+        const resposta = await fetch('api/peca3d.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

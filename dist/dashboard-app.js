@@ -117,13 +117,14 @@ async function loadTabData(tabName) {
                         <td>${item.tempoImpressao || '-'}</td>
                         <td>${item.peso ? item.peso + 'g' : '-'}</td>
                         <td class="text-success fw-bold">${item.preco ? 'R$ ' + Number(item.preco).toFixed(2) : '-'}</td>
+                        <td>${item.quantidade}</td>
                         <td>Subcat: ${item.id_subcategoria}</td>
                         <td class="text-end">
                             <button onclick='editItem("peca", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
                             <button onclick='deleteItem("peca", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
-                `).join('') || '<tr><td colspan="9" class="text-center py-3">Nenhuma peça 3D cadastrada.</td></tr>';
+                `).join('') || '<tr><td colspan="10" class="text-center py-3">Nenhuma peça 3D cadastrada.</td></tr>';
             }
         }
         else if (tabName === 'pedidos') {
@@ -236,6 +237,10 @@ function openModal(entity, data = null) {
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label font-bold">Quantidade</label>
+                <input type="number" min="0" step="1" id="p-quantidade" value="${data ? data.quantidade ?? 0 : 0}" required class="form-control">
+            </div>
+            <div class="mb-3">
                 <label class="form-label font-bold">ID Subcategoria</label>
                 <input type="number" id="p-id-sub" value="${data ? data.id_subcategoria : ''}" required class="form-control">
             </div>
@@ -281,8 +286,16 @@ function closeModal() {
         bsModalInstance.hide();
     }
 }
+let isSaving = false;
 async function saveForm(e) {
     e.preventDefault();
+    if (isSaving)
+        return;
+    isSaving = true;
+    const submitBtn = document.querySelector('#generic-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
     const idField = document.getElementById('field-id');
     const id = idField ? idField.value : '';
     const isEdit = id !== '';
@@ -332,6 +345,7 @@ async function saveForm(e) {
                 tempoImpressao: document.getElementById('p-tempo').value || null,
                 peso: document.getElementById('p-peso').value ? parseFloat(document.getElementById('p-peso').value) : null,
                 preco: document.getElementById('p-preco').value ? parseFloat(document.getElementById('p-preco').value) : null,
+                quantidade: Number(document.getElementById('p-quantidade').value),
                 id_subcategoria: Number(document.getElementById('p-id-sub').value)
             };
             if (isEdit) {
@@ -361,6 +375,12 @@ async function saveForm(e) {
     catch (err) {
         console.error(err);
         alert("Ocorreu um erro ao salvar o registro.");
+    }
+    finally {
+        isSaving = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
     }
 }
 async function editItem(entity, data) {

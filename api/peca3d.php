@@ -1,10 +1,10 @@
 <?php
 
-require_once "config.php";
+require_once file_exists(__DIR__ . "/config.php") ? __DIR__ . "/config.php" : __DIR__ . "/../config.php";
 
-header("Content-Type: application/json");
+header("Content-Type: application/json; charset=utf-8");
 
-$metodo = $_SERVER["REQUEST_METHOD"];
+$metodo = $_SERVER["REQUEST_METHOD"] ?? '';
 
 switch ($metodo) {
 

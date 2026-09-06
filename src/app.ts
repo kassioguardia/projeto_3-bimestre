@@ -8,7 +8,7 @@ export * from './pecaCliente.js';
 
 async function carregarDashboard(): Promise<void> {
     try {
-        const resposta = await fetch('api.php');
+        const resposta = await fetch('api/api.php');
 
         if (!resposta.ok) {
             throw new Error(`Erro na requisição: Status ${resposta.status}`);

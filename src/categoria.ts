@@ -2,7 +2,7 @@ import { Categoria } from './types.js';
 
 export async function listarCategorias(): Promise<Categoria[]> {
     try {
-        const resposta = await fetch('categoria.php');
+        const resposta = await fetch('api/categoria.php');
         if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
     } catch (erro) {
@@ -13,7 +13,7 @@ export async function listarCategorias(): Promise<Categoria[]> {
 
 export async function criarCategoria(categoria: Omit<Categoria, 'id'>): Promise<void> {
     try {
-        const resposta = await fetch('categoria.php', {
+        const resposta = await fetch('api/categoria.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
@@ -27,7 +27,7 @@ export async function criarCategoria(categoria: Omit<Categoria, 'id'>): Promise<
 
 export async function atualizarCategoria(categoria: Categoria): Promise<void> {
     try {
-        const resposta = await fetch('categoria.php', {
+        const resposta = await fetch('api/categoria.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
@@ -41,7 +41,7 @@ export async function atualizarCategoria(categoria: Categoria): Promise<void> {
 
 export async function excluirCategoria(id: number): Promise<void> {
     try {
-        const resposta = await fetch('categoria.php', {
+        const resposta = await fetch('api/categoria.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

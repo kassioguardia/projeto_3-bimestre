@@ -1,6 +1,6 @@
 export async function listarPecasCliente() {
     try {
-        const resposta = await fetch('peca_cliente.php');
+        const resposta = await fetch('api/peca_cliente.php');
         if (!resposta.ok)
             throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
@@ -12,7 +12,7 @@ export async function listarPecasCliente() {
 }
 export async function criarPecaCliente(pecaCliente) {
     try {
-        const resposta = await fetch('peca_cliente.php', {
+        const resposta = await fetch('api/peca_cliente.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pecaCliente)
@@ -27,7 +27,7 @@ export async function criarPecaCliente(pecaCliente) {
 }
 export async function atualizarPecaCliente(pecaCliente) {
     try {
-        const resposta = await fetch('peca_cliente.php', {
+        const resposta = await fetch('api/peca_cliente.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pecaCliente)
@@ -42,7 +42,7 @@ export async function atualizarPecaCliente(pecaCliente) {
 }
 export async function excluirPecaCliente(id) {
     try {
-        const resposta = await fetch('peca_cliente.php', {
+        const resposta = await fetch('api/peca_cliente.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

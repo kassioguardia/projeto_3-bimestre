@@ -2,7 +2,7 @@ import { PecaCliente } from './types.js';
 
 export async function listarPecasCliente(): Promise<PecaCliente[]> {
     try {
-        const resposta = await fetch('peca_cliente.php');
+        const resposta = await fetch('api/peca_cliente.php');
         if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
     } catch (erro) {
@@ -13,7 +13,7 @@ export async function listarPecasCliente(): Promise<PecaCliente[]> {
 
 export async function criarPecaCliente(pecaCliente: Omit<PecaCliente, 'id' | 'data_solicitacao'>): Promise<void> {
     try {
-        const resposta = await fetch('peca_cliente.php', {
+        const resposta = await fetch('api/peca_cliente.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pecaCliente)
@@ -27,7 +27,7 @@ export async function criarPecaCliente(pecaCliente: Omit<PecaCliente, 'id' | 'da
 
 export async function atualizarPecaCliente(pecaCliente: PecaCliente): Promise<void> {
     try {
-        const resposta = await fetch('peca_cliente.php', {
+        const resposta = await fetch('api/peca_cliente.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pecaCliente)
@@ -41,7 +41,7 @@ export async function atualizarPecaCliente(pecaCliente: PecaCliente): Promise<vo
 
 export async function excluirPecaCliente(id: number): Promise<void> {
     try {
-        const resposta = await fetch('peca_cliente.php', {
+        const resposta = await fetch('api/peca_cliente.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

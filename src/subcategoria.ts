@@ -2,7 +2,7 @@ import { Subcategoria } from './types.js';
 
 export async function listarSubcategorias(): Promise<Subcategoria[]> {
     try {
-        const resposta = await fetch('subcategoria.php');
+        const resposta = await fetch('api/subcategoria.php');
         if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
     } catch (erro) {
@@ -13,7 +13,7 @@ export async function listarSubcategorias(): Promise<Subcategoria[]> {
 
 export async function criarSubcategoria(subcategoria: Omit<Subcategoria, 'id'>): Promise<void> {
     try {
-        const resposta = await fetch('subcategoria.php', {
+        const resposta = await fetch('api/subcategoria.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subcategoria)
@@ -27,7 +27,7 @@ export async function criarSubcategoria(subcategoria: Omit<Subcategoria, 'id'>):
 
 export async function atualizarSubcategoria(subcategoria: Subcategoria): Promise<void> {
     try {
-        const resposta = await fetch('subcategoria.php', {
+        const resposta = await fetch('api/subcategoria.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subcategoria)
@@ -41,7 +41,7 @@ export async function atualizarSubcategoria(subcategoria: Subcategoria): Promise
 
 export async function excluirSubcategoria(id: number): Promise<void> {
     try {
-        const resposta = await fetch('subcategoria.php', {
+        const resposta = await fetch('api/subcategoria.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

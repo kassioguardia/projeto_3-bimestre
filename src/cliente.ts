@@ -2,7 +2,7 @@ import { Cliente } from './types.js';
 
 export async function listarClientes(): Promise<Cliente[]> {
     try {
-        const resposta = await fetch('cliente.php');
+        const resposta = await fetch('api/cliente.php');
         if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
         return await resposta.json();
     } catch (erro) {
@@ -13,7 +13,7 @@ export async function listarClientes(): Promise<Cliente[]> {
 
 export async function criarCliente(cliente: Omit<Cliente, 'id' | 'data_cadastro'>): Promise<void> {
     try {
-        const resposta = await fetch('cliente.php', {
+        const resposta = await fetch('api/cliente.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cliente)
@@ -27,7 +27,7 @@ export async function criarCliente(cliente: Omit<Cliente, 'id' | 'data_cadastro'
 
 export async function atualizarCliente(cliente: Cliente): Promise<void> {
     try {
-        const resposta = await fetch('cliente.php', {
+        const resposta = await fetch('api/cliente.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cliente)
@@ -41,7 +41,7 @@ export async function atualizarCliente(cliente: Cliente): Promise<void> {
 
 export async function excluirCliente(id: number): Promise<void> {
     try {
-        const resposta = await fetch('cliente.php', {
+        const resposta = await fetch('api/cliente.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })

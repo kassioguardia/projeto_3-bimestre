@@ -1,0 +1,4 @@
+﻿RewriteEngine On
+
+# Compatibilidade: redireciona requisições dos endpoints antigos na raiz para a pasta api/
+RewriteRule ^(api|cliente|categoria|subcategoria|peca3d|peca_cliente)\.php$ api/$1.php [L,QSA]
