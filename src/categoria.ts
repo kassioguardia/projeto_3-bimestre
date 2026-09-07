@@ -3,7 +3,10 @@ import { Categoria } from './types.js';
 export async function listarCategorias(): Promise<Categoria[]> {
     try {
         const resposta = await fetch('api/categoria.php');
-        if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
         return await resposta.json();
     } catch (erro) {
         console.error('Falha ao listar categorias:', erro);
@@ -11,42 +14,57 @@ export async function listarCategorias(): Promise<Categoria[]> {
     }
 }
 
-export async function criarCategoria(categoria: Omit<Categoria, 'id'>): Promise<void> {
+export async function criarCategoria(categoria: Omit<Categoria, 'id'>): Promise<string> {
     try {
         const resposta = await fetch('api/categoria.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
         });
-        if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Categoria cadastrada com sucesso.';
     } catch (erro) {
         console.error('Falha ao criar categoria:', erro);
         throw erro;
     }
 }
 
-export async function atualizarCategoria(categoria: Categoria): Promise<void> {
+export async function atualizarCategoria(categoria: Categoria): Promise<string> {
     try {
         const resposta = await fetch('api/categoria.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
         });
-        if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Categoria atualizada com sucesso.';
     } catch (erro) {
         console.error('Falha ao atualizar categoria:', erro);
         throw erro;
     }
 }
 
-export async function excluirCategoria(id: number): Promise<void> {
+export async function excluirCategoria(id: number): Promise<string> {
     try {
         const resposta = await fetch('api/categoria.php', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        if (!resposta.ok) throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Categoria excluída com sucesso.';
     } catch (erro) {
         console.error('Falha ao excluir categoria:', erro);
         throw erro;

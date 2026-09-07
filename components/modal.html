@@ -1,18 +1,32 @@
-<div class="modal fade" id="form-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="form-modal" tabindex="-1" role="dialog"
+     aria-labelledby="modal-title" aria-modal="true">
+    <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header text-white" style="background-color: #1e1b4b;">
                 <h5 class="modal-title" id="modal-title">Formulário</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeModal()"></button>
+                <button type="button" class="btn-close btn-close-white"
+                    data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form id="generic-form" onsubmit="saveForm(event)">
-                <div class="modal-body" id="modal-fields">
-                    <!-- Dinâmico -->
+            <form id="generic-form" novalidate>
+                <div class="modal-body">
+                    <!-- Banner de erro da API — exibido apenas em caso de falha -->
+                    <div id="modal-alert"
+                         class="alert alert-danger d-flex align-items-start gap-2 d-none mb-3"
+                         role="alert" aria-live="assertive">
+                        <i class="fa-solid fa-circle-xmark mt-1 flex-shrink-0"></i>
+                        <span></span>
+                    </div>
+                    <div id="modal-fields">
+                        <!-- Campos gerados dinamicamente -->
+                    </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-0">
                     <input type="hidden" id="field-id">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closeModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <button type="button" class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Salvar
+                    </button>
                 </div>
             </form>
         </div>

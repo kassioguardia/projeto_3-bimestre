@@ -1,23 +1,25 @@
 <div id="tab-pecas" class="tab-content d-none">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0 fw-bold">Lista de Peças 3D</h5>
-        <button onclick="openModal('peca')" class="btn btn-primary"><i class="fa-solid fa-plus me-2"></i>Nova Peça 3D</button>
+        <button data-action="new" data-entity="peca" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-2"></i>Nova Peça 3D
+        </button>
     </div>
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
-                        <th>Modelo</th>
-                        <th>Descrição</th>
-                        <th>Tamanho (cm³)</th>
-                        <th>Tempo de Impressão</th>
-                        <th>Peso (g)</th>
-                        <th>Preço</th>
-                        <th>Quantidade</th>
-                        <th>Subcategoria</th>
-                        <th class="text-end">Ações</th>
+                        <th scope="col">ID</th>
+                        <th scope="col">Modelo</th>
+                        <th scope="col">Descrição</th>
+                        <th scope="col">Tamanho (cm³)</th>
+                        <th scope="col">Tempo de Impressão</th>
+                        <th scope="col">Peso (g)</th>
+                        <th scope="col">Preço</th>
+                        <th scope="col">Quantidade</th>
+                        <th scope="col">Subcategoria</th>
+                        <th scope="col" class="text-end">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-pecas-body"></tbody>

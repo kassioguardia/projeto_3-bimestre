@@ -3,34 +3,40 @@
     <span class="fs-4 fw-bold">HoffmannLab3D</span>
 </div>
 <hr class="text-white-50">
-<ul class="nav nav-pills flex-column mb-auto gap-1">
+<ul class="nav nav-pills flex-column mb-auto gap-1" role="navigation">
     <li class="nav-item">
-        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-link active w-100 text-start border-0 py-2.5 px-3 rounded-3 text-white">
+        <button data-tab="dashboard" id="btn-dashboard"
+            class="nav-link active w-100 text-start border-0 py-2 px-3 rounded-3 text-white">
             <i class="fa-solid fa-chart-line me-2"></i> Dashboard
         </button>
     </li>
-    <li>
-        <button onclick="switchTab('clientes')" id="btn-clientes" class="nav-link w-100 text-start border-0 py-2.5 px-3 rounded-3">
+    <li class="nav-item">
+        <button data-tab="clientes" id="btn-clientes"
+            class="nav-link w-100 text-start border-0 py-2 px-3 rounded-3">
             <i class="fa-solid fa-users me-2"></i> Clientes
         </button>
     </li>
-    <li>
-        <button onclick="switchTab('categorias')" id="btn-categorias" class="nav-link w-100 text-start border-0 py-2.5 px-3 rounded-3">
+    <li class="nav-item">
+        <button data-tab="categorias" id="btn-categorias"
+            class="nav-link w-100 text-start border-0 py-2 px-3 rounded-3">
             <i class="fa-solid fa-tags me-2"></i> Categorias
         </button>
     </li>
-    <li>
-        <button onclick="switchTab('subcategorias')" id="btn-subcategorias" class="nav-link w-100 text-start border-0 py-2.5 px-3 rounded-3">
+    <li class="nav-item">
+        <button data-tab="subcategorias" id="btn-subcategorias"
+            class="nav-link w-100 text-start border-0 py-2 px-3 rounded-3">
             <i class="fa-solid fa-folder-tree me-2"></i> Subcategorias
         </button>
     </li>
-    <li>
-        <button onclick="switchTab('pecas')" id="btn-pecas" class="nav-link w-100 text-start border-0 py-2.5 px-3 rounded-3">
+    <li class="nav-item">
+        <button data-tab="pecas" id="btn-pecas"
+            class="nav-link w-100 text-start border-0 py-2 px-3 rounded-3">
             <i class="fa-solid fa-shapes me-2"></i> Peças 3D
         </button>
     </li>
-    <li>
-        <button onclick="switchTab('pedidos')" id="btn-pedidos" class="nav-link w-100 text-start border-0 py-2.5 px-3 rounded-3">
+    <li class="nav-item">
+        <button data-tab="pedidos" id="btn-pedidos"
+            class="nav-link w-100 text-start border-0 py-2 px-3 rounded-3">
             <i class="fa-solid fa-file-invoice-dollar me-2"></i> Pedidos
         </button>
     </li>

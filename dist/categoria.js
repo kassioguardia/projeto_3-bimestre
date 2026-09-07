@@ -1,8 +1,10 @@
 export async function listarCategorias() {
     try {
         const resposta = await fetch('api/categoria.php');
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
         return await resposta.json();
     }
     catch (erro) {
@@ -17,8 +19,12 @@ export async function criarCategoria(categoria) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
         });
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Categoria cadastrada com sucesso.';
     }
     catch (erro) {
         console.error('Falha ao criar categoria:', erro);
@@ -32,8 +38,12 @@ export async function atualizarCategoria(categoria) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(categoria)
         });
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Categoria atualizada com sucesso.';
     }
     catch (erro) {
         console.error('Falha ao atualizar categoria:', erro);
@@ -47,8 +57,12 @@ export async function excluirCategoria(id) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Categoria excluída com sucesso.';
     }
     catch (erro) {
         console.error('Falha ao excluir categoria:', erro);

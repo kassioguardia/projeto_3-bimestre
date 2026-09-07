@@ -1,5 +1,8 @@
 <div id="tab-dashboard" class="tab-content">
-    <!-- Cards Row -->
+    <!-- Alerta de erro do dashboard -->
+    <div class="alert alert-danger d-none dashboard-error-alert mb-3" role="alert"></div>
+
+    <!-- Cards -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm">
@@ -8,7 +11,7 @@
                         <i class="fa-solid fa-user-check fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="card-subtitle text-muted text-uppercase fs-7 fw-bold">Clientes Ativos</h6>
+                        <h6 class="card-subtitle text-muted text-uppercase fw-bold small">Clientes Ativos</h6>
                         <h2 id="card-total-clientes" class="card-title mb-0 fw-bold">-</h2>
                     </div>
                 </div>
@@ -21,7 +24,7 @@
                         <i class="fa-solid fa-hand-holding-dollar fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="card-subtitle text-muted text-uppercase fs-7 fw-bold">Faturamento Total</h6>
+                        <h6 class="card-subtitle text-muted text-uppercase fw-bold small">Faturamento Total</h6>
                         <h2 id="card-media-vendas" class="card-title mb-0 fw-bold">-</h2>
                     </div>
                 </div>
@@ -34,7 +37,7 @@
                         <i class="fa-solid fa-crown fs-3"></i>
                     </div>
                     <div>
-                        <h6 class="card-subtitle text-muted text-uppercase fs-7 fw-bold">Cliente em Destaque</h6>
+                        <h6 class="card-subtitle text-muted text-uppercase fw-bold small">Cliente em Destaque</h6>
                         <h2 id="card-cliente-destaque" class="card-title mb-0 fw-bold fs-5">-</h2>
                     </div>
                 </div>
@@ -42,7 +45,7 @@
         </div>
     </div>
 
-    <!-- View Relatório -->
+    <!-- Relatório de Vendas -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3 border-0">
             <h5 class="mb-0 fw-bold">Relatório de Vendas por Cliente</h5>
@@ -51,10 +54,10 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>ID Cliente</th>
-                        <th>Nome Cliente</th>
-                        <th>Total de Vendas</th>
-                        <th>Valor Total</th>
+                        <th scope="col">ID Cliente</th>
+                        <th scope="col">Nome Cliente</th>
+                        <th scope="col">Total de Vendas</th>
+                        <th scope="col">Valor Total</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-vendas-body">

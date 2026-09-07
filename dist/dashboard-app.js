@@ -1,425 +1,645 @@
-import { listarClientes, criarCliente, atualizarCliente, excluirCliente, listarCategorias, criarCategoria, atualizarCategoria, excluirCategoria, listarSubcategorias, criarSubcategoria, atualizarSubcategoria, excluirSubcategoria, listarPecas3d, criarPeca3d, atualizarPeca3d, excluirPeca3d, listarPecasCliente, criarPecaCliente, atualizarPecaCliente, excluirPecaCliente } from './app.js';
+import { listarClientes, criarCliente, atualizarCliente, excluirCliente, listarCategorias, criarCategoria, atualizarCategoria, excluirCategoria, listarSubcategorias, criarSubcategoria, atualizarSubcategoria, excluirSubcategoria, listarPecas3d, criarPeca3d, atualizarPeca3d, excluirPeca3d, listarPecasCliente, criarPecaCliente, atualizarPecaCliente, excluirPecaCliente, carregarDashboard } from './app.js';
+import { escapeHtml, formatCurrency, formatDate } from './utils/dom.js';
+import { showToast, confirmAction, showTableLoading, setButtonLoading, setModalError } from './utils/ui.js';
+// ─── Estado ──────────────────────────────────────────────────────────────────
 let activeTab = 'dashboard';
 let activeEntity = '';
 let bsModalInstance = null;
+let editingId = null;
+// Caches tipados — evitam JSON.stringify nos botões de edição
+const cacheClientes = new Map();
+const cacheCategorias = new Map();
+const cacheSubcategorias = new Map();
+const cachePecas = new Map();
+const cachePedidos = new Map();
+// Arquivos de componentes e abas (estrutura original do projeto)
 const componentFiles = {
     'sidebar-container': 'components/sidebar.html',
     'header-container': 'components/header.html',
-    'modal-container': 'components/modal.html'
+    'modal-container': 'components/modal.html',
 };
 const tabNames = ['dashboard', 'clientes', 'categorias', 'subcategorias', 'pecas', 'pedidos'];
+// ─── Carregamento de interface (fetch de components/ e tabs/) ─────────────────
 async function loadInterface() {
-    await Promise.all(Object.entries(componentFiles).map(async ([containerId, file]) => {
-        const response = await fetch(file);
-        if (!response.ok)
+    await Promise.all(Object.entries(componentFiles).map(async ([id, file]) => {
+        const res = await fetch(file);
+        if (!res.ok)
             throw new Error(`Falha ao carregar ${file}`);
-        const container = document.getElementById(containerId);
-        if (container)
-            container.innerHTML = await response.text();
+        const el = document.getElementById(id);
+        if (el)
+            el.innerHTML = await res.text();
     }));
     const tabsContainer = document.getElementById('tabs-container');
     if (!tabsContainer)
         throw new Error('Container das abas não encontrado.');
-    const tabs = await Promise.all(tabNames.map(async (tabName) => {
-        const response = await fetch(`tabs/${tabName}.html`);
-        if (!response.ok)
-            throw new Error(`Falha ao carregar tabs/${tabName}.html`);
-        return response.text();
+    const tabs = await Promise.all(tabNames.map(async (name) => {
+        const res = await fetch(`tabs/${name}.html`);
+        if (!res.ok)
+            throw new Error(`Falha ao carregar tabs/${name}.html`);
+        return res.text();
     }));
     tabsContainer.innerHTML = tabs.join('');
-    document.dispatchEvent(new CustomEvent('dashboard:ready'));
 }
-function switchTab(tabName) {
+// ─── Roteamento por Hash (persiste aba no F5 e navegação) ─────────────────────
+function getActiveTabFromUrl() {
+    const hash = window.location.hash.slice(1).trim();
+    const valid = ['dashboard', 'clientes', 'categorias', 'subcategorias', 'pecas', 'pedidos'];
+    if (valid.includes(hash))
+        return hash;
+    return localStorage.getItem('activeTab') ?? 'dashboard';
+}
+function setActiveTabInUrl(tabName) {
+    history.pushState(null, '', `#${tabName}`);
+    localStorage.setItem('activeTab', tabName);
+}
+window.addEventListener('popstate', () => {
+    switchTabInternal(getActiveTabFromUrl(), false);
+});
+// ─── Navegação entre abas ──────────────────────────────────────────────────────
+function switchTabInternal(tabName, updateUrl = true) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('d-none'));
     document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${tabName}`)?.classList.remove('d-none');
     document.getElementById(`btn-${tabName}`)?.classList.add('active');
     const titleMap = {
-        'dashboard': 'Painel Geral',
-        'clientes': 'Gerenciamento de Clientes',
-        'categorias': 'Gerenciamento de Categorias',
-        'subcategorias': 'Gerenciamento de Subcategorias',
-        'pecas': 'Gerenciamento de Peças 3D',
-        'pedidos': 'Gerenciamento de Pedidos'
+        dashboard: 'Painel Geral',
+        clientes: 'Gerenciamento de Clientes',
+        categorias: 'Gerenciamento de Categorias',
+        subcategorias: 'Gerenciamento de Subcategorias',
+        pecas: 'Gerenciamento de Peças 3D',
+        pedidos: 'Gerenciamento de Pedidos',
     };
     const titleEl = document.getElementById('page-title');
-    if (titleEl) {
-        titleEl.innerText = titleMap[tabName] || 'Painel';
-    }
+    if (titleEl)
+        titleEl.textContent = titleMap[tabName] ?? 'Painel';
     activeTab = tabName;
+    if (updateUrl)
+        setActiveTabInUrl(tabName);
     loadTabData(tabName);
 }
+// ─── Carga de dados ────────────────────────────────────────────────────────────
 async function loadTabData(tabName) {
     try {
-        if (tabName === 'clientes') {
-            const data = await listarClientes();
-            const tbody = document.getElementById('tabela-clientes-body');
-            if (tbody) {
-                tbody.innerHTML = data.map(item => `
-                    <tr>
-                        <td class="fw-bold">#${item.id}</td>
-                        <td>${item.nome}</td>
-                        <td>${item.email}</td>
-                        <td>${item.telefone || '-'}</td>
-                        <td>${item.endereco || '-'}</td>
-                        <td>${item.data_cadastro ? new Date(item.data_cadastro).toLocaleDateString('pt-BR') : '-'}</td>
-                        <td class="text-end">
-                            <button onclick='editItem("cliente", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick='deleteItem("cliente", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('') || '<tr><td colspan="7" class="text-center py-3">Nenhum cliente cadastrado.</td></tr>';
-            }
-        }
-        else if (tabName === 'categorias') {
-            const data = await listarCategorias();
-            const tbody = document.getElementById('tabela-categorias-body');
-            if (tbody) {
-                tbody.innerHTML = data.map(item => `
-                    <tr>
-                        <td class="fw-bold">#${item.id}</td>
-                        <td>${item.nome}</td>
-                        <td class="text-end">
-                            <button onclick='editItem("categoria", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick='deleteItem("categoria", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('') || '<tr><td colspan="3" class="text-center py-3">Nenhuma categoria cadastrada.</td></tr>';
-            }
-        }
-        else if (tabName === 'subcategorias') {
-            const data = await listarSubcategorias();
-            const tbody = document.getElementById('tabela-subcategorias-body');
-            if (tbody) {
-                tbody.innerHTML = data.map(item => `
-                    <tr>
-                        <td class="fw-bold">#${item.id}</td>
-                        <td>${item.nome}</td>
-                        <td>ID: ${item.id_categoria}</td>
-                        <td class="text-end">
-                            <button onclick='editItem("subcategoria", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick='deleteItem("subcategoria", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('') || '<tr><td colspan="4" class="text-center py-3">Nenhuma subcategoria cadastrada.</td></tr>';
-            }
-        }
-        else if (tabName === 'pecas') {
-            const data = await listarPecas3d();
-            const tbody = document.getElementById('tabela-pecas-body');
-            if (tbody) {
-                tbody.innerHTML = data.map(item => `
-                    <tr>
-                        <td class="fw-bold">#${item.id}</td>
-                        <td class="fw-bold text-secondary">${item.modelo}</td>
-                        <td>${item.descricao || '-'}</td>
-                        <td>${item.tamanho || '-'}</td>
-                        <td>${item.tempoImpressao || '-'}</td>
-                        <td>${item.peso ? item.peso + 'g' : '-'}</td>
-                        <td class="text-success fw-bold">${item.preco ? 'R$ ' + Number(item.preco).toFixed(2) : '-'}</td>
-                        <td>${item.quantidade}</td>
-                        <td>Subcat: ${item.id_subcategoria}</td>
-                        <td class="text-end">
-                            <button onclick='editItem("peca", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick='deleteItem("peca", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('') || '<tr><td colspan="10" class="text-center py-3">Nenhuma peça 3D cadastrada.</td></tr>';
-            }
-        }
-        else if (tabName === 'pedidos') {
-            const data = await listarPecasCliente();
-            const tbody = document.getElementById('tabela-pedidos-body');
-            if (tbody) {
-                tbody.innerHTML = data.map(item => `
-                    <tr>
-                        <td class="fw-bold">#${item.id}</td>
-                        <td>Peça #${item.id_peca3d}</td>
-                        <td>Cliente #${item.id_cliente}</td>
-                        <td>${item.observacao || '-'}</td>
-                        <td>
-                            <span class="badge ${item.status === 'Concluído' ? 'bg-success' :
-                    item.status === 'Cancelado' ? 'bg-danger' : 'bg-warning text-dark'}">${item.status || 'Pendente'}</span>
-                        </td>
-                        <td>${item.data_solicitacao ? new Date(item.data_solicitacao).toLocaleDateString('pt-BR') : '-'}</td>
-                        <td class="text-end">
-                            <button onclick='editItem("pedido", ${JSON.stringify(item)})' class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick='deleteItem("pedido", ${item.id})' class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `).join('') || '<tr><td colspan="7" class="text-center py-3">Nenhum pedido cadastrado.</td></tr>';
-            }
-        }
+        if (tabName === 'dashboard')
+            await carregarDashboard();
+        else if (tabName === 'clientes')
+            await loadClientes();
+        else if (tabName === 'categorias')
+            await loadCategorias();
+        else if (tabName === 'subcategorias')
+            await loadSubcategorias();
+        else if (tabName === 'pecas')
+            await loadPecas();
+        else if (tabName === 'pedidos')
+            await loadPedidos();
     }
     catch (err) {
-        console.error(err);
-        alert("Falha ao carregar os dados desta seção.");
+        showToast(err instanceof Error ? err.message : 'Erro ao carregar dados.', 'danger');
     }
 }
-function openModal(entity, data = null) {
+async function loadClientes() {
+    const tbody = document.getElementById('tabela-clientes-body');
+    if (!tbody)
+        return;
+    showTableLoading(tbody, 7);
+    const data = await listarClientes();
+    cacheClientes.clear();
+    data.forEach(c => cacheClientes.set(c.id, c));
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">Nenhum cliente cadastrado.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(item => `
+        <tr>
+            <td class="fw-bold">#${item.id}</td>
+            <td>${escapeHtml(item.nome)}</td>
+            <td>${escapeHtml(item.email)}</td>
+            <td>${escapeHtml(item.telefone)}</td>
+            <td>${escapeHtml(item.endereco)}</td>
+            <td>${formatDate(item.data_cadastro)}</td>
+            <td class="text-end">
+                <button data-action="edit" data-entity="cliente" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-primary me-1" aria-label="Editar cliente ${escapeHtml(item.nome)}">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button data-action="delete" data-entity="cliente" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-danger" aria-label="Excluir cliente ${escapeHtml(item.nome)}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>`).join('');
+}
+async function loadCategorias() {
+    const tbody = document.getElementById('tabela-categorias-body');
+    if (!tbody)
+        return;
+    showTableLoading(tbody, 3);
+    const data = await listarCategorias();
+    cacheCategorias.clear();
+    data.forEach(c => cacheCategorias.set(c.id, c));
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">Nenhuma categoria cadastrada.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(item => `
+        <tr>
+            <td class="fw-bold">#${item.id}</td>
+            <td>${escapeHtml(item.nome)}</td>
+            <td class="text-end">
+                <button data-action="edit" data-entity="categoria" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-primary me-1" aria-label="Editar categoria ${escapeHtml(item.nome)}">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button data-action="delete" data-entity="categoria" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-danger" aria-label="Excluir categoria ${escapeHtml(item.nome)}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>`).join('');
+}
+async function loadSubcategorias() {
+    const tbody = document.getElementById('tabela-subcategorias-body');
+    if (!tbody)
+        return;
+    showTableLoading(tbody, 4);
+    const data = await listarSubcategorias();
+    cacheSubcategorias.clear();
+    data.forEach(s => cacheSubcategorias.set(s.id, s));
+    if (cacheCategorias.size === 0) {
+        (await listarCategorias()).forEach(c => cacheCategorias.set(c.id, c));
+    }
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">Nenhuma subcategoria cadastrada.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(item => {
+        const catNome = cacheCategorias.get(item.id_categoria)?.nome ?? `ID: ${item.id_categoria}`;
+        return `
+        <tr>
+            <td class="fw-bold">#${item.id}</td>
+            <td>${escapeHtml(item.nome)}</td>
+            <td>${escapeHtml(catNome)}</td>
+            <td class="text-end">
+                <button data-action="edit" data-entity="subcategoria" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-primary me-1" aria-label="Editar subcategoria ${escapeHtml(item.nome)}">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button data-action="delete" data-entity="subcategoria" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-danger" aria-label="Excluir subcategoria ${escapeHtml(item.nome)}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+async function loadPecas() {
+    const tbody = document.getElementById('tabela-pecas-body');
+    if (!tbody)
+        return;
+    showTableLoading(tbody, 10);
+    const data = await listarPecas3d();
+    cachePecas.clear();
+    data.forEach(p => cachePecas.set(p.id, p));
+    if (cacheSubcategorias.size === 0) {
+        (await listarSubcategorias()).forEach(s => cacheSubcategorias.set(s.id, s));
+    }
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-3 text-muted">Nenhuma peça 3D cadastrada.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(item => {
+        const subNome = cacheSubcategorias.get(item.id_subcategoria)?.nome ?? `ID: ${item.id_subcategoria}`;
+        return `
+        <tr>
+            <td class="fw-bold">#${item.id}</td>
+            <td class="fw-bold text-secondary">${escapeHtml(item.modelo)}</td>
+            <td>${escapeHtml(item.descricao)}</td>
+            <td>${item.tamanho != null ? item.tamanho : '-'}</td>
+            <td>${escapeHtml(item.tempoImpressao)}</td>
+            <td>${item.peso != null ? item.peso + 'g' : '-'}</td>
+            <td class="text-success fw-bold">${item.preco != null ? formatCurrency(Number(item.preco)) : '-'}</td>
+            <td>${item.quantidade}</td>
+            <td>${escapeHtml(subNome)}</td>
+            <td class="text-end">
+                <button data-action="edit" data-entity="peca" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-primary me-1" aria-label="Editar peça ${escapeHtml(item.modelo)}">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button data-action="delete" data-entity="peca" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-danger" aria-label="Excluir peça ${escapeHtml(item.modelo)}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+async function loadPedidos() {
+    const tbody = document.getElementById('tabela-pedidos-body');
+    if (!tbody)
+        return;
+    showTableLoading(tbody, 7);
+    const data = await listarPecasCliente();
+    cachePedidos.clear();
+    data.forEach(p => cachePedidos.set(p.id, p));
+    if (cacheClientes.size === 0) {
+        (await listarClientes()).forEach(c => cacheClientes.set(c.id, c));
+    }
+    if (cachePecas.size === 0) {
+        (await listarPecas3d()).forEach(p => cachePecas.set(p.id, p));
+    }
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">Nenhum pedido cadastrado.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(item => {
+        const clienteNome = cacheClientes.get(item.id_cliente)?.nome ?? `#${item.id_cliente}`;
+        const pecaNome = cachePecas.get(item.id_peca3d)?.modelo ?? `#${item.id_peca3d}`;
+        const statusClass = item.status === 'Concluído' ? 'bg-success'
+            : item.status === 'Cancelado' ? 'bg-danger' : 'bg-warning text-dark';
+        return `
+        <tr>
+            <td class="fw-bold">#${item.id}</td>
+            <td>${escapeHtml(pecaNome)}</td>
+            <td>${escapeHtml(clienteNome)}</td>
+            <td>${escapeHtml(item.observacao)}</td>
+            <td><span class="badge ${statusClass}">${escapeHtml(item.status ?? 'Pendente')}</span></td>
+            <td>${formatDate(item.data_solicitacao)}</td>
+            <td class="text-end">
+                <button data-action="edit" data-entity="pedido" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-primary me-1" aria-label="Editar pedido #${item.id}">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button data-action="delete" data-entity="pedido" data-id="${item.id}"
+                    class="btn btn-sm btn-outline-danger" aria-label="Excluir pedido #${item.id}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+// ─── Modal de formulário ───────────────────────────────────────────────────────
+async function openModal(entity, id) {
     activeEntity = entity;
+    editingId = id ?? null;
+    const data = id != null ? getEntityFromCache(entity, id) : null;
     const titleEl = document.getElementById('modal-title');
     const fieldsEl = document.getElementById('modal-fields');
+    const alertEl = document.getElementById('modal-alert');
     const idField = document.getElementById('field-id');
+    const form = document.getElementById('generic-form');
     if (idField)
-        idField.value = data ? data.id : '';
+        idField.value = id != null ? String(id) : '';
     if (titleEl)
-        titleEl.innerText = data ? `Editar ${entity.toUpperCase()}` : `Adicionar ${entity.toUpperCase()}`;
-    let fieldsHtml = '';
-    if (entity === 'cliente') {
-        fieldsHtml = `
-            <div class="mb-3">
-                <label class="form-label font-bold">Nome</label>
-                <input type="text" id="c-nome" value="${data ? data.nome : ''}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Email</label>
-                <input type="email" id="c-email" value="${data ? data.email : ''}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Telefone</label>
-                <input type="text" id="c-telefone" value="${data ? data.telefone || '' : ''}" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Endereço</label>
-                <input type="text" id="c-endereco" value="${data ? data.endereco || '' : ''}" class="form-control">
-            </div>
-        `;
-    }
-    else if (entity === 'categoria') {
-        fieldsHtml = `
-            <div class="mb-3">
-                <label class="form-label font-bold">Nome</label>
-                <input type="text" id="cat-nome" value="${data ? data.nome : ''}" required class="form-control">
-            </div>
-        `;
-    }
-    else if (entity === 'subcategoria') {
-        fieldsHtml = `
-            <div class="mb-3">
-                <label class="form-label font-bold">Nome</label>
-                <input type="text" id="scat-nome" value="${data ? data.nome : ''}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">ID Categoria Pai</label>
-                <input type="number" id="scat-id-cat" value="${data ? data.id_categoria : ''}" required class="form-control">
-            </div>
-        `;
-    }
-    else if (entity === 'peca') {
-        fieldsHtml = `
-            <div class="mb-3">
-                <label class="form-label font-bold">Modelo</label>
-                <input type="text" id="p-modelo" value="${data ? data.modelo : ''}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Descrição</label>
-                <input type="text" id="p-desc" value="${data ? data.descricao || '' : ''}" class="form-control">
-            </div>
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <label class="form-label font-bold">Tamanho (cm³)</label>
-                    <input type="number" id="p-tamanho" value="${data ? data.tamanho || '' : ''}" class="form-control">
-                </div>
-                <div class="col-6">
-                    <label class="form-label font-bold">Tempo (HH:MM:SS)</label>
-                    <input type="text" id="p-tempo" placeholder="02:30:00" value="${data ? data.tempoImpressao || '' : ''}" class="form-control">
-                </div>
-            </div>
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <label class="form-label font-bold">Peso (g)</label>
-                    <input type="number" step="0.01" id="p-peso" value="${data ? data.peso || '' : ''}" class="form-control">
-                </div>
-                <div class="col-6">
-                    <label class="form-label font-bold">Preço (R$)</label>
-                    <input type="number" step="0.01" id="p-preco" value="${data ? data.preco || '' : ''}" class="form-control">
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Quantidade</label>
-                <input type="number" min="0" step="1" id="p-quantidade" value="${data ? data.quantidade ?? 0 : 0}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">ID Subcategoria</label>
-                <input type="number" id="p-id-sub" value="${data ? data.id_subcategoria : ''}" required class="form-control">
-            </div>
-        `;
-    }
-    else if (entity === 'pedido') {
-        fieldsHtml = `
-            <div class="mb-3">
-                <label class="form-label font-bold">ID Peça 3D</label>
-                <input type="number" id="ped-id-peca" value="${data ? data.id_peca3d : ''}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">ID Cliente</label>
-                <input type="number" id="ped-id-cli" value="${data ? data.id_cliente : ''}" required class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Observação</label>
-                <input type="text" id="ped-obs" value="${data ? data.observacao || '' : ''}" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label font-bold">Status</label>
-                <select id="ped-status" class="form-select">
-                    <option value="Pendente" ${data && data.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                    <option value="Concluído" ${data && data.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
-                    <option value="Cancelado" ${data && data.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                </select>
-            </div>
-        `;
-    }
+        titleEl.textContent = id != null
+            ? `Editar ${entityLabel(entity)}`
+            : `Adicionar ${entityLabel(entity)}`;
+    form?.classList.remove('was-validated');
+    setModalError(alertEl, null);
     if (fieldsEl)
-        fieldsEl.innerHTML = fieldsHtml;
+        fieldsEl.innerHTML =
+            '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
     if (!bsModalInstance) {
         const modalEl = document.getElementById('form-modal');
-        if (modalEl) {
+        if (modalEl)
             bsModalInstance = new bootstrap.Modal(modalEl);
-        }
     }
     if (bsModalInstance)
         bsModalInstance.show();
-}
-function closeModal() {
-    if (bsModalInstance) {
-        bsModalInstance.hide();
+    const fieldsHtml = await buildFormFields(entity);
+    if (fieldsEl) {
+        fieldsEl.innerHTML = fieldsHtml;
+        if (id != null && data != null)
+            populateFormFields(entity, data);
     }
 }
+function getEntityFromCache(entity, id) {
+    switch (entity) {
+        case 'cliente': return cacheClientes.get(id) ?? null;
+        case 'categoria': return cacheCategorias.get(id) ?? null;
+        case 'subcategoria': return cacheSubcategorias.get(id) ?? null;
+        case 'peca': return cachePecas.get(id) ?? null;
+        case 'pedido': return cachePedidos.get(id) ?? null;
+        default: return null;
+    }
+}
+function entityLabel(entity) {
+    const labels = {
+        cliente: 'Cliente', categoria: 'Categoria',
+        subcategoria: 'Subcategoria', peca: 'Peça 3D', pedido: 'Pedido',
+    };
+    return labels[entity] ?? entity.toUpperCase();
+}
+async function buildFormFields(entity) {
+    if (entity === 'cliente') {
+        return `
+        <div class="mb-3">
+            <label for="c-nome" class="form-label fw-bold">Nome <span class="text-danger">*</span></label>
+            <input type="text" id="c-nome" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="c-email" class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+            <input type="email" id="c-email" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="c-telefone" class="form-label fw-bold">Telefone</label>
+            <input type="text" id="c-telefone" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="c-endereco" class="form-label fw-bold">Endereço</label>
+            <input type="text" id="c-endereco" class="form-control">
+        </div>`;
+    }
+    if (entity === 'categoria') {
+        return `
+        <div class="mb-3">
+            <label for="cat-nome" class="form-label fw-bold">Nome <span class="text-danger">*</span></label>
+            <input type="text" id="cat-nome" class="form-control" required>
+        </div>`;
+    }
+    if (entity === 'subcategoria') {
+        const cats = cacheCategorias.size > 0
+            ? Array.from(cacheCategorias.values())
+            : await listarCategorias().then(list => { list.forEach(c => cacheCategorias.set(c.id, c)); return list; });
+        const opts = cats.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+        return `
+        <div class="mb-3">
+            <label for="scat-nome" class="form-label fw-bold">Nome <span class="text-danger">*</span></label>
+            <input type="text" id="scat-nome" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="scat-id-cat" class="form-label fw-bold">Categoria Pai <span class="text-danger">*</span></label>
+            <select id="scat-id-cat" class="form-select" required>
+                <option value="">Selecione...</option>${opts}
+            </select>
+        </div>`;
+    }
+    if (entity === 'peca') {
+        const subs = cacheSubcategorias.size > 0
+            ? Array.from(cacheSubcategorias.values())
+            : await listarSubcategorias().then(list => { list.forEach(s => cacheSubcategorias.set(s.id, s)); return list; });
+        const opts = subs.map(s => `<option value="${s.id}">${escapeHtml(s.nome)}</option>`).join('');
+        return `
+        <div class="mb-3">
+            <label for="p-modelo" class="form-label fw-bold">Modelo <span class="text-danger">*</span></label>
+            <input type="text" id="p-modelo" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="p-desc" class="form-label fw-bold">Descrição</label>
+            <input type="text" id="p-desc" class="form-control">
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label for="p-tamanho" class="form-label fw-bold">Tamanho (cm³)</label>
+                <input type="number" id="p-tamanho" class="form-control">
+            </div>
+            <div class="col-6">
+                <label for="p-tempo" class="form-label fw-bold">Tempo (HH:MM:SS)</label>
+                <input type="text" id="p-tempo" placeholder="02:30:00" class="form-control">
+            </div>
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label for="p-peso" class="form-label fw-bold">Peso (g)</label>
+                <input type="number" step="0.01" id="p-peso" class="form-control">
+            </div>
+            <div class="col-6">
+                <label for="p-preco" class="form-label fw-bold">Preço (R$)</label>
+                <input type="number" step="0.01" id="p-preco" class="form-control">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="p-quantidade" class="form-label fw-bold">Quantidade <span class="text-danger">*</span></label>
+            <input type="number" min="0" step="1" id="p-quantidade" value="0" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="p-id-sub" class="form-label fw-bold">Subcategoria <span class="text-danger">*</span></label>
+            <select id="p-id-sub" class="form-select" required>
+                <option value="">Selecione...</option>${opts}
+            </select>
+        </div>`;
+    }
+    if (entity === 'pedido') {
+        const [clientes, pecas] = await Promise.all([
+            cacheClientes.size > 0
+                ? Promise.resolve(Array.from(cacheClientes.values()))
+                : listarClientes().then(l => { l.forEach(c => cacheClientes.set(c.id, c)); return l; }),
+            cachePecas.size > 0
+                ? Promise.resolve(Array.from(cachePecas.values()))
+                : listarPecas3d().then(l => { l.forEach(p => cachePecas.set(p.id, p)); return l; }),
+        ]);
+        const cliOpts = clientes.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+        const pecOpts = pecas.map(p => `<option value="${p.id}">${escapeHtml(p.modelo)}</option>`).join('');
+        return `
+        <div class="mb-3">
+            <label for="ped-id-peca" class="form-label fw-bold">Peça 3D <span class="text-danger">*</span></label>
+            <select id="ped-id-peca" class="form-select" required>
+                <option value="">Selecione...</option>${pecOpts}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="ped-id-cli" class="form-label fw-bold">Cliente <span class="text-danger">*</span></label>
+            <select id="ped-id-cli" class="form-select" required>
+                <option value="">Selecione...</option>${cliOpts}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="ped-obs" class="form-label fw-bold">Observação</label>
+            <input type="text" id="ped-obs" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="ped-status" class="form-label fw-bold">Status</label>
+            <select id="ped-status" class="form-select">
+                <option value="Pendente">Pendente</option>
+                <option value="Concluído">Concluído</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+        </div>`;
+    }
+    return '<p class="text-muted">Entidade desconhecida.</p>';
+}
+function populateFormFields(entity, data) {
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el)
+            el.value = val != null ? String(val) : '';
+    };
+    if (entity === 'cliente') {
+        setVal('c-nome', data.nome);
+        setVal('c-email', data.email);
+        setVal('c-telefone', data.telefone);
+        setVal('c-endereco', data.endereco);
+    }
+    else if (entity === 'categoria') {
+        setVal('cat-nome', data.nome);
+    }
+    else if (entity === 'subcategoria') {
+        setVal('scat-nome', data.nome);
+        setVal('scat-id-cat', data.id_categoria);
+    }
+    else if (entity === 'peca') {
+        setVal('p-modelo', data.modelo);
+        setVal('p-desc', data.descricao);
+        setVal('p-tamanho', data.tamanho);
+        setVal('p-tempo', data.tempoImpressao);
+        setVal('p-peso', data.peso);
+        setVal('p-preco', data.preco);
+        setVal('p-quantidade', data.quantidade ?? 0);
+        setVal('p-id-sub', data.id_subcategoria);
+    }
+    else if (entity === 'pedido') {
+        setVal('ped-id-peca', data.id_peca3d);
+        setVal('ped-id-cli', data.id_cliente);
+        setVal('ped-obs', data.observacao);
+        setVal('ped-status', data.status ?? 'Pendente');
+    }
+}
+function closeModal() {
+    if (bsModalInstance)
+        bsModalInstance.hide();
+}
+// ─── Salvamento ────────────────────────────────────────────────────────────────
 let isSaving = false;
 async function saveForm(e) {
     e.preventDefault();
     if (isSaving)
         return;
-    isSaving = true;
-    const submitBtn = document.querySelector('#generic-form button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
+    const form = e.target;
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
     }
-    const idField = document.getElementById('field-id');
-    const id = idField ? idField.value : '';
-    const isEdit = id !== '';
+    form.classList.remove('was-validated');
+    isSaving = true;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn)
+        setButtonLoading(submitBtn, true);
+    const alertEl = document.getElementById('modal-alert');
+    setModalError(alertEl, null);
     try {
+        let mensagem = '';
+        const isEdit = editingId != null;
         if (activeEntity === 'cliente') {
-            const clientData = {
+            const d = {
                 nome: document.getElementById('c-nome').value,
                 email: document.getElementById('c-email').value,
                 telefone: document.getElementById('c-telefone').value || null,
-                endereco: document.getElementById('c-endereco').value || null
+                endereco: document.getElementById('c-endereco').value || null,
             };
-            if (isEdit) {
-                await atualizarCliente({ id: Number(id), ...clientData });
-            }
-            else {
-                await criarCliente(clientData);
-            }
+            mensagem = isEdit ? await atualizarCliente({ id: editingId, ...d }) : await criarCliente(d);
         }
         else if (activeEntity === 'categoria') {
-            const catData = {
-                nome: document.getElementById('cat-nome').value
-            };
-            if (isEdit) {
-                await atualizarCategoria({ id: Number(id), ...catData });
-            }
-            else {
-                await criarCategoria(catData);
-            }
+            const d = { nome: document.getElementById('cat-nome').value };
+            mensagem = isEdit ? await atualizarCategoria({ id: editingId, ...d }) : await criarCategoria(d);
         }
         else if (activeEntity === 'subcategoria') {
-            const scatData = {
+            const d = {
                 nome: document.getElementById('scat-nome').value,
-                id_categoria: Number(document.getElementById('scat-id-cat').value)
+                id_categoria: Number(document.getElementById('scat-id-cat').value),
             };
-            if (isEdit) {
-                await atualizarSubcategoria({ id: Number(id), ...scatData });
-            }
-            else {
-                await criarSubcategoria(scatData);
-            }
+            mensagem = isEdit ? await atualizarSubcategoria({ id: editingId, ...d }) : await criarSubcategoria(d);
         }
         else if (activeEntity === 'peca') {
-            const pecaData = {
+            const num = (id) => { const v = document.getElementById(id).value; return v ? Number(v) : null; };
+            const d = {
                 modelo: document.getElementById('p-modelo').value,
                 descricao: document.getElementById('p-desc').value || null,
-                tamanho: document.getElementById('p-tamanho').value ? Number(document.getElementById('p-tamanho').value) : null,
+                tamanho: num('p-tamanho'),
                 tempoImpressao: document.getElementById('p-tempo').value || null,
-                peso: document.getElementById('p-peso').value ? parseFloat(document.getElementById('p-peso').value) : null,
-                preco: document.getElementById('p-preco').value ? parseFloat(document.getElementById('p-preco').value) : null,
+                peso: num('p-peso'),
+                preco: num('p-preco'),
                 quantidade: Number(document.getElementById('p-quantidade').value),
-                id_subcategoria: Number(document.getElementById('p-id-sub').value)
+                id_subcategoria: Number(document.getElementById('p-id-sub').value),
             };
-            if (isEdit) {
-                await atualizarPeca3d({ id: Number(id), ...pecaData });
-            }
-            else {
-                await criarPeca3d(pecaData);
-            }
+            mensagem = isEdit ? await atualizarPeca3d({ id: editingId, ...d }) : await criarPeca3d(d);
         }
         else if (activeEntity === 'pedido') {
-            const pedData = {
+            const d = {
                 id_peca3d: Number(document.getElementById('ped-id-peca').value),
                 id_cliente: Number(document.getElementById('ped-id-cli').value),
                 observacao: document.getElementById('ped-obs').value || null,
-                status: document.getElementById('ped-status').value || null
+                status: document.getElementById('ped-status').value || 'Pendente',
             };
-            if (isEdit) {
-                await atualizarPecaCliente({ id: Number(id), ...pedData });
-            }
-            else {
-                await criarPecaCliente(pedData);
-            }
+            mensagem = isEdit ? await atualizarPecaCliente({ id: editingId, ...d }) : await criarPecaCliente(d);
         }
         closeModal();
-        loadTabData(activeTab);
+        showToast(mensagem, 'success');
+        await loadTabData(activeTab);
     }
     catch (err) {
-        console.error(err);
-        alert("Ocorreu um erro ao salvar o registro.");
+        setModalError(alertEl, err instanceof Error ? err.message : 'Erro desconhecido ao salvar.');
     }
     finally {
         isSaving = false;
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
+        if (submitBtn)
+            setButtonLoading(submitBtn, false);
     }
 }
-async function editItem(entity, data) {
-    openModal(entity, data);
-}
+// ─── Exclusão ──────────────────────────────────────────────────────────────────
 async function deleteItem(entity, id) {
-    if (!confirm(`Deseja realmente excluir este registro?`))
+    const confirmed = await confirmAction(`Excluir ${entityLabel(entity)}`, `Deseja realmente excluir este(a) ${entityLabel(entity).toLowerCase()}? Esta ação não pode ser desfeita.`);
+    if (!confirmed)
         return;
     try {
+        let mensagem = '';
         if (entity === 'cliente')
-            await excluirCliente(id);
+            mensagem = await excluirCliente(id);
         else if (entity === 'categoria')
-            await excluirCategoria(id);
+            mensagem = await excluirCategoria(id);
         else if (entity === 'subcategoria')
-            await excluirSubcategoria(id);
+            mensagem = await excluirSubcategoria(id);
         else if (entity === 'peca')
-            await excluirPeca3d(id);
+            mensagem = await excluirPeca3d(id);
         else if (entity === 'pedido')
-            await excluirPecaCliente(id);
-        loadTabData(activeTab);
+            mensagem = await excluirPecaCliente(id);
+        showToast(mensagem, 'success');
+        await loadTabData(activeTab);
     }
     catch (err) {
-        console.error(err);
-        alert("Ocorreu um erro ao excluir o registro.");
+        showToast(err instanceof Error ? err.message : 'Erro ao excluir.', 'danger');
     }
 }
-window.switchTab = switchTab;
-window.openModal = openModal;
-window.closeModal = closeModal;
-window.saveForm = saveForm;
-window.editItem = editItem;
-window.deleteItem = deleteItem;
+// ─── Delegação de eventos ──────────────────────────────────────────────────────
+function setupEventDelegation() {
+    document.addEventListener('click', async (e) => {
+        const target = e.target;
+        const tabBtn = target.closest('[data-tab]');
+        if (tabBtn) {
+            switchTabInternal(tabBtn.dataset['tab']);
+            return;
+        }
+        const newBtn = target.closest('[data-action="new"]');
+        if (newBtn) {
+            await openModal(newBtn.dataset['entity']);
+            return;
+        }
+        const editBtn = target.closest('[data-action="edit"]');
+        if (editBtn) {
+            await openModal(editBtn.dataset['entity'], Number(editBtn.dataset['id']));
+            return;
+        }
+        const deleteBtn = target.closest('[data-action="delete"]');
+        if (deleteBtn) {
+            await deleteItem(deleteBtn.dataset['entity'], Number(deleteBtn.dataset['id']));
+            return;
+        }
+    });
+    document.addEventListener('submit', (e) => {
+        if (e.target.id === 'generic-form')
+            saveForm(e);
+    });
+}
+// ─── Inicialização ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await loadInterface();
-        switchTab('dashboard');
+        setupEventDelegation();
+        const startTab = getActiveTabFromUrl();
+        switchTabInternal(startTab, false);
+        if (!window.location.hash)
+            history.replaceState(null, '', `#${startTab}`);
     }
     catch (err) {
-        console.error(err);
-        alert('Falha ao carregar a interface do painel.');
+        console.error('Falha ao inicializar a interface:', err);
+        alert('Falha ao carregar a interface do painel. Verifique o console.');
     }
 });

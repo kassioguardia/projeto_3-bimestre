@@ -1,8 +1,10 @@
 export async function listarSubcategorias() {
     try {
         const resposta = await fetch('api/subcategoria.php');
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
         return await resposta.json();
     }
     catch (erro) {
@@ -17,8 +19,12 @@ export async function criarSubcategoria(subcategoria) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subcategoria)
         });
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Subcategoria cadastrada com sucesso.';
     }
     catch (erro) {
         console.error('Falha ao criar subcategoria:', erro);
@@ -32,8 +38,12 @@ export async function atualizarSubcategoria(subcategoria) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subcategoria)
         });
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Subcategoria atualizada com sucesso.';
     }
     catch (erro) {
         console.error('Falha ao atualizar subcategoria:', erro);
@@ -47,8 +57,12 @@ export async function excluirSubcategoria(id) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        if (!resposta.ok)
-            throw new Error(`Erro na requisição: Status ${resposta.status}`);
+        if (!resposta.ok) {
+            const erroData = await resposta.json().catch(() => null);
+            throw new Error(erroData?.erro || erroData?.error || erroData?.mensagem || `Erro na requisição: Status ${resposta.status}`);
+        }
+        const dados = await resposta.json();
+        return dados.mensagem ?? 'Subcategoria excluída com sucesso.';
     }
     catch (erro) {
         console.error('Falha ao excluir subcategoria:', erro);
